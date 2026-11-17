@@ -7,9 +7,13 @@ namespace StorageAPI
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
-            var connectionString = builder.Configuration.GetConnectionString("StorageAPIContext") ?? throw new InvalidOperationException("Connection string 'StorageAPIContext' not found.");
 
-            builder.Services.AddDbContext<StorageAPIContext>(options => options.UseSqlServer(connectionString));
+            builder.Services.AddDbContext<StorageAPIContext>(
+                options => {
+                    options.UseSqlServer(
+                        builder.Configuration.GetConnectionString("StorageAPIContext"));
+                }
+            );
 
             // Add services to the container.
 
