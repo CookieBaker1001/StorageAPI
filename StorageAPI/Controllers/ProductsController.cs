@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using StorageAPI.Data;
+using StorageAPI.DTO;
 using StorageAPI.Models;
 
 [Route("api/[controller]")]
@@ -14,23 +16,29 @@ public class ProductsController : ControllerBase
 
     // GET: api/Product
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Product>>> GetProduct()
+    public async Task<ActionResult<IEnumerable<CreateProductDto>>> GetProduct()
     {
-        return await _context.Product.ToListAsync();
+        var products = await _context.Product.ToListAsync();
+        List<CreateProductDto> productsToReturn = new List<CreateProductDto>();
+        foreach (var product in products)
+        {
+            productsToReturn.Add(ProductConverter.ToProductDto(product));
+        }
+        return productsToReturn;
     }
 
     // GET: api/Product/5
     [HttpGet("{id}")]
-    public async Task<ActionResult<Product>> GetProduct(int id)
+    public async Task<ActionResult<CreateProductDto>> GetProduct(int id)
     {
         var product = await _context.Product.FindAsync(id);
 
-        if (product == null)
+        if (product is null)
         {
             return NotFound();
         }
 
-        return product;
+        return ProductConverter.ToProductDto(product);
     }
 
     // PUT: api/Product/5
@@ -67,12 +75,13 @@ public class ProductsController : ControllerBase
     // POST: api/Product
     // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
     [HttpPost]
-    public async Task<ActionResult<Product>> PostProduct(Product product)
+    public async Task<ActionResult<Product>> PostProduct(CreateProductDto product)
     {
-        _context.Product.Add(product);
+        var productToAdd = ProductConverter.ToProduct(product);
+        _context.Product.Add(productToAdd);
         await _context.SaveChangesAsync();
 
-        return CreatedAtAction("GetProduct", new { id = product.Id }, product);
+        return CreatedAtAction("GetProduct", new { id = productToAdd.Id }, productToAdd);
     }
 
     // DELETE: api/Product/5
