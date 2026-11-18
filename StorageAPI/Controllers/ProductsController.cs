@@ -16,13 +16,40 @@ public class ProductsController : ControllerBase
 
     // GET: api/Product
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<CreateProductDto>>> GetProduct()
+    public async Task<ActionResult<IEnumerable<CreateProductDto>>> GetProduct(
+        [FromQuery] string? name, string? category)
     {
-        var products = await _context.Product.ToListAsync();
         List<CreateProductDto> productsToReturn = new List<CreateProductDto>();
-        foreach (var product in products)
+        if (string.IsNullOrWhiteSpace(name) && string.IsNullOrWhiteSpace(category))
         {
-            productsToReturn.Add(ProductConverter.ToProductDto(product));
+            var products = await _context.Product.ToListAsync();
+            foreach (var product in products)
+                productsToReturn.Add(ProductConverter.ToProductDto(product));
+        }
+        else if (!string.IsNullOrWhiteSpace(name)) {
+            var products = await _context.Product
+                .Where(p => p.Name == name)
+                .ToListAsync();
+            foreach (var product in products)
+                productsToReturn.Add(ProductConverter.ToProductDto(product));
+        }
+        else if (!string.IsNullOrWhiteSpace(category))
+        {
+            var products = await _context.Product
+                .Where(p => p.Category == category)
+                .ToListAsync();
+            foreach (var product in products)
+                productsToReturn.Add(ProductConverter.ToProductDto(product));
+        }
+        else {
+            var products = await _context.Product
+                .Where(p => p.Name == name)
+                .Where(p => p.Category == category)
+                .ToListAsync();
+            foreach (var product in products)
+            {
+                productsToReturn.Add(ProductConverter.ToProductDto(product));
+            }
         }
         return productsToReturn;
     }
@@ -98,6 +125,18 @@ public class ProductsController : ControllerBase
         await _context.SaveChangesAsync();
 
         return NoContent();
+    }
+
+    [HttpGet("stats")]
+    public async Task<ActionResult<DataStats>> GetStats() {
+
+        var products = _context.Product.ToList();
+
+        int totalItemCount = products.Sum(p => p.Count);
+        int totalItemPrice = products.Sum(p => p.Price * p.Count);
+        decimal medianPrice = ((decimal) totalItemPrice) / (totalItemCount > 0 ? totalItemCount : 1);
+
+        return new DataStats(totalItemCount, totalItemPrice, medianPrice);
     }
 
     private bool ProductExists(int? id)
